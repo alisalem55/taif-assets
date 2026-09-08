@@ -142,7 +142,6 @@ else:
             st.markdown(f"<div class='card-luxury'><div class='card-icon'><i class='fa-solid fa-hotel'></i></div><h3 style='color: #1d5c43;'>إجمالي المواقع المقيدة</h3><h2>{len(df_assets)} منشأة مسجلة</h2></div>", unsafe_allow_html=True)
         with c2:
             if not df_assets.empty and "المساحة" in df_assets.columns:
-                # تنظيف وحساب فوري للمساحات مهما كان شكل الحقول في ملفك
                 df_assets['clean_area'] = pd.to_numeric(df_assets["المساحة"].astype(str).str.replace(',', '', regex=True).str.replace(' ', '', regex=True).str.strip(), errors='coerce').fillna(0)
                 total_area = df_assets['clean_area'].sum()
             else:
@@ -182,7 +181,7 @@ else:
                     if st.button("🚀 دمج وحفظ وتثبيت الـ 144 منشأة بالكامل وتنشيط الواجهة الحية للموقع"):
                         st.session_state["cloud_assets"] = df_uploaded
                         st.balloons()
-                        st.success("🎉 تهانينا التامة! تم دمج وتثبيت كامل ملف الممتلكات الحقيقي بنجاح وتنشيط كافة محركات البحث والخطابات الموصولة والمواقع الجغرافية!")
+                        st.success("🎉 تهانينا التامة! تم دمج وتثبيت كامل ملف الممتلكات بنجاح وتنشيط كافة محركات البحث والخطابات الموصولة والمواقع الجغرافية!")
                         st.rerun()
                 except Exception as e:
                     st.error(f"حدث خطأ ما أثناء تحليل هيكلية ملف الـ Excel المرفوع: {e}")
@@ -195,7 +194,6 @@ else:
             st.markdown("<div class='alert-premium' style='background:#fff9e6; border-right:6px solid #f39c12; color:#d35400;'><i class='fa-solid fa-circle-exclamation'></i> النظام بانتظار تفعيل البيانات، يرجى التوجه أولاً لقسم '📥 استيراد ورفع ملفات Excel' لتثبيت ملفك الحقيقي وتنشيط محرك الاستدعاء الحالي تلقائياً.</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
-            # محرك بحث مرن وذكي يتيح تصفية المنشآت الـ 144 بكتابة الاسم أو رقم الصك فوراً
             search_box = st.text_input("🔍 ابحث فوراً بكتابة اسم المنشأة أو الأرض أو جزء من رقم الصك الشرعي لاستدعاء الملف الفني:")
             
             if search_box:
@@ -212,10 +210,9 @@ else:
             st.markdown("</div>", unsafe_allow_html=True)
             
             if selected_facility:
-                asset_data = df_assets[df_assets['المنشأة'] == selected_facility].iloc[0]
+                asset_data = df_assets[df_assets['المنشأة'] == selected_facility].iloc
                 st.markdown(f"<h2><i class='fa-solid fa-file-shield'></i> الملف العقاري والبطاقات الفنية المصورة لـ: {selected_facility}</h2>", unsafe_allow_html=True)
                 
-                # 🖼️ لوحة عرض بطاقات الوثائق المصورة الأربعة المنسقة جرافيكياً بالتوازي مطابق لطلبك
                 c_b1, c_b2 = st.columns(2)
                 c_b3, c_b4 = st.columns(2)
                 
@@ -238,7 +235,6 @@ else:
                     g_img = st.file_uploader(f"رفع صورة كروكي الموقع لـ {selected_facility}", type=["jpg","png","jpeg"], key=f"site_{asset_data['رقم الصك']}")
                     if g_img: st.image(g_img, use_container_width=True)
                     else:
-                        # معالجة وحل مشكلة فك تشفير الإحداثيات الرقمية وربطها التلقائي الفوري بخرائط جوجل لتعمل كالنظام القديم تماماً
                         lat_val = str(asset_data['دائرة العرض']).replace('°','').replace(' ','').strip() if 'دائرة العرض' in asset_data else '21.27'
                         lon_val = str(asset_data['خط الطول']).replace('°','').replace(' ','').strip() if 'خط الطول' in asset_data else '40.41'
                         maps_url = f"https://google.com{lat_val},{lon_val}"
@@ -252,7 +248,6 @@ else:
                     else: st.info("📷 اسحب صورة قرار الذرعة الصادر المطابق لمساحة الموقع هنا.")
                     st.markdown("</div>", unsafe_allow_html=True)
 
-                # محرك صائغ الخطابات الفوري المعتمد باسم القيادات العليا الحالية وإدارة الأراضي والممتلكات
                 st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
                 st.markdown("<h4>✉️ محرك صائغ الخطابات الرقمي المعتمد لإدارة الأراضي والممتلكات</h4>", unsafe_allow_html=True)
                 letter_target = st.selectbox("حدد الجهة الحكومية المستهدفة لتوجه الخطاب إليها آلياً:", [
@@ -281,7 +276,7 @@ else:
                 with open("generated_letter.docx", "rb") as f:
                     st.download_button("📥 تنزيل الخطاب الآن كملف Word رسمي معتمد ومكتمل للتوقيع", f, file_name=f"خطاب_صحة_الطائف_{sok_num}.docx")
                 st.markdown("</div>", unsafe_allow_html=True)
-    # ⚙️ لوحة التحكم بالأصول (تعديل كامل يدوي وحذف للمدخلات حياً وإعادة الميزة المطلوبة)
+    # ⚙️ لوحة التحكم بالأصول
     elif menu == "⚙️ التحكم بالأصول (تعديل يدوياً/حذف)":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-gear'></i> إدارة وتعديل وحذف الأصول والمنشآت يدوياً</h1>", unsafe_allow_html=True)
         if st.session_state['role'] != "Admin":
@@ -324,7 +319,7 @@ else:
             st.markdown("<h5>📋 تعديل وحذف قيود الـ 144 منشأة مباشرة من الجدول التفاعلي التلقائي</h5>", unsafe_allow_html=True)
             if not df_assets.empty:
                 edited_df = st.data_editor(df_assets, num_rows="dynamic", use_container_width=True, key="assets_editor_vfinal")
-                if st.button("💾 حفظ وتثبيت كافة حركات التعديل أو الحذف المباشرة حلياً"):
+                if st.button("💾 حفظ كافة حركات التعديل أو الحذف المباشرة حالياً"):
                     st.session_state["cloud_assets"] = edited_df
                     st.success("🎉 تم تحديث وحفظ جدول المنشآت بنجاح على السحابة الدائمة!")
                     st.rerun()
@@ -354,7 +349,7 @@ else:
         edited_wf = st.data_editor(st.session_state["cloud_workflows"], num_rows="dynamic", use_container_width=True, key="wf_editor")
         if st.button("💾 حفظ تعديلات أرشيف المعاملات"):
             st.session_state["cloud_workflows"] = edited_wf
-            st.success("✅ تم التثبيت.")
+            st.success("✅ تم التثبيت بنجاح.")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -379,9 +374,10 @@ else:
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
-        edited_enc = st.data_editor(st.session_state["cloud_encroach"], num_rows="dynamic", use_container_width=True, key=\"enc_editor\")
+        # تم مسح وتطهير رمز الخطأ الإملائي تماماً لتعمل الشاشة بكفاءة واستقرار
+        edited_enc = st.data_editor(st.session_state["cloud_encroach"], num_rows="dynamic", use_container_width=True, key="enc_editor")
         if st.button("💾 حفظ تعديلات حصر التعديات الميدانية"):
             st.session_state["cloud_encroach"] = edited_enc
-            st.success("✅ تم تحديث السجل.")
+            st.success("✅ تم تحديث سجل الرقابة والمتابعة الميدانية بنجاح.")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
