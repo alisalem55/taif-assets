@@ -90,13 +90,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. تهيئة وتأمين قاعدة البيانات المحلية الدائمة على السيرفر
+# 2. تهيئة وتأمين قاعدة البيانات المحلية وحمايتها بشكل قاطع من الأخطاء الفارغة
 def init_db():
+    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقار", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
+    # إذا كان الملف غير موجود أو فارغ تماماً، يتم بناؤه فوراً بالهيكلية الصحيحة لمنع خطأ EmptyDataError
     if not os.path.exists("assets_db.csv") or os.stat("assets_db.csv").st_size == 0:
-        pd.DataFrame().to_csv("assets_db.csv", index=False)
-    if not os.path.exists("encroachments_db.csv"):
+        pd.DataFrame(columns=required_cols).to_csv("assets_db.csv", index=False)
+    if not os.path.exists("encroachments_db.csv") or os.stat("encroachments_db.csv").st_size == 0:
         pd.DataFrame(columns=["رقم الصك", "المنشأة", "نوع_التعدي", "حالة_القضية", "تاريخ_الرصد", "الإجراء_المتخذ"]).to_csv("encroachments_db.csv", index=False)
-    if not os.path.exists("workflows_db.csv"):
+    if not os.path.exists("workflows_db.csv") or os.stat("workflows_db.csv").st_size == 0:
         pd.DataFrame(columns=["رقم_المعاملة", "موضوع_المعاملة", "الإدارة_الحالية", "حالة_المعاملة", "تاريخ_التحديث", "الموظف_المسؤول"]).to_csv("workflows_db.csv", index=False)
 
 init_db()
@@ -113,7 +115,7 @@ if not st.session_state['logged_in']:
     col1, col2, col3 = st.columns(3)
     with col2:
         st.markdown("<div class='card-luxury' style='border-top: 4px solid #1d5c43;'>", unsafe_allow_html=True)
-        role_input = st.selectbox("🔒 فئة الدخول للمنصة", ["موظف الإدارة (Staff)", "مدير النظام (Admin)"])
+        role_input = st.selectbox("🔒 فئة الدخول للمنصة", ["مدير النظام (Admin)", "موظف الإدارة (Staff)"])
         password = st.text_input("🔑 كود التحقق السري", type="password")
         if st.button("🔓 دخول آمن للنظام"):
             if role_input == "مدير النظام (Admin)" and password == "MOH@2026":
@@ -154,12 +156,23 @@ else:
         st.session_state['logged_in'] = False
         st.rerun()
 
-    # القراءة الفورية والمباشرة من السيرفر لضمان ثبات البيانات
-    df_assets = pd.read_csv("assets_db.csv")
-    df_encroach = pd.read_csv("encroachments_db.csv")
-    df_workflows = pd.read_csv("workflows_db.csv")
+    # القراءة الفورية والمحمية بحلقات الفحص الآمنة لمنع الـ EmptyDataError تماماً
+    try:
+        df_assets = pd.read_csv("assets_db.csv")
+    except:
+        df_assets = pd.DataFrame()
+        
+    try:
+        df_encroach = pd.read_csv("encroachments_db.csv")
+    except:
+        df_encroach = pd.DataFrame()
+        
+    try:
+        df_workflows = pd.read_csv("workflows_db.csv")
+    except:
+        df_workflows = pd.DataFrame()
 
-    # 📊 لوحة التحكم اليومية المستقرة القديمة
+    # 📊 لوحة التحكم اليومية المستقرة
     if menu == "📊 لوحة التحكم اليومية":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-chart-pie'></i> لوحة المؤشرات الرقمية والأداء اليومي للأصول</h1>", unsafe_allow_html=True)
         
@@ -167,7 +180,6 @@ else:
         with c1:
             st.markdown(f"<div class='card-luxury'><div class='card-icon'><i class='fa-solid fa-hotel'></i></div><h3 style='color: #1d5c43;'>إجمالي المنشآت والعقارات</h3><h2>{len(df_assets) if not df_assets.empty else 0} موقع مقيد</h2></div>", unsafe_allow_html=True)
         with c2:
-            # محرك قراءة وحساب المساحات القديم المضمون والذكي
             if not df_assets.empty and "المساحة" in df_assets.columns:
                 df_assets['clean_area'] = pd.to_numeric(df_assets["المساحة"].astype(str).str.replace(',', '', regex=True).str.replace(' ', '', regex=True).str.strip(), errors='coerce').fillna(0)
                 total_area = df_assets['clean_area'].sum()
@@ -175,7 +187,7 @@ else:
                 total_area = 0
             st.markdown(f"<div class='card-luxury'><div class='card-icon'><i class='fa-solid fa-up-right-and-down-left-from-center'></i></div><h3 style='color: #1d5c43;'>المساحات الإجمالية المحمية</h3><h2>{total_area:,.2f} م²</h2></div>", unsafe_allow_html=True)
         with c3:
-            st.markdown(f"<div class='card-luxury'><div class='card-icon'><i class='fa-solid fa-shield-cat'></i></div><h3 style='color: #1d5c43;'>التعديات المرصودة</h3><h2>{len(df_encroach)} حالة تحت الإجراء</h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='card-luxury'><div class='card-icon'><i class='fa-solid fa-shield-cat'></i></div><h3 style='color: #1d5c43;'>التعديات المرصودة</h3><h2>{len(df_encroach) if not df_encroach.empty else 0} حالة تحت الإجراء</h2></div>", unsafe_allow_html=True)
             
         # تشغيل محرك الخريطة الجغرافية القديم الموثوق بناءً على أسماء حقول ملفك الحقيقية
         st.markdown("<br><h3 style='text-align: right;'><i class='fa-solid fa-map-marked-alt'></i> النطاق الجغرافي للأملاك والمشاريع (رؤية الأقمار الصناعية)</h3>", unsafe_allow_html=True)
@@ -193,9 +205,9 @@ else:
             except:
                 st.info("💡 الخريطة الرقمية تنتظر معالجة البيانات الجغرافية.")
         else:
-            st.info("💡 الخريطة الرقمية جاهزة وتنتظر إدخال الأصول والمشاريع.")
+            st.info("💡 الخريطة الرقمية جاهزة وتنتظر استيراد بيان ملف الـ Excel لتنشيط المواقع الـ 144 تلقائياً.")
 
-    # 📥 قسم استيراد ورفع ملفات Excel (ينزل القوائم حية كما هي بأسماء العناوين الأصلية)
+    # 📥 قسم استيراد ورفع ملفات Excel
     elif menu == "📥 استيراد ورفع ملفات Excel":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-file-excel'></i> استيراد ورفع البيانات الذكي من ملفات Excel</h1>", unsafe_allow_html=True)
         if st.session_state['role'] != "Admin":
@@ -208,7 +220,7 @@ else:
                 try:
                     df_uploaded = pd.read_excel(uploaded_file) if not uploaded_file.name.endswith('.csv') else pd.read_csv(uploaded_file)
                     st.success(f"✅ تم قراءة ملفك بنجاح! تم رصد وعزل {len(df_uploaded)} منشأة وموقع عقاري.")
-                    st.dataframe(df_uploaded, use_container_width=True)
+                    st.dataframe(df_uploaded.head(10), use_container_width=True)
                     if st.button("🚀 اعتماد وحفظ القوائم المرفوعة في قاعدة بيانات خادم الويب دائمًا"):
                         df_uploaded.to_csv("assets_db.csv", index=False)
                         st.balloons()
@@ -222,7 +234,7 @@ else:
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-open'></i> ملفات الأصول وبطاقات الوثائق المصورة والخطابات</h1>", unsafe_allow_html=True)
         
         if df_assets.empty or 'المنشأة' not in df_assets.columns:
-            st.info("💡 قاعدة البيانات فارغة حالياً على الويب، يرجى التوجه أولاً لقسم '📥 استيراد ورفع ملفات Excel' لتثبيت ملفك وتنشيط الواجهة تلقائياً.")
+            st.info("💡 قاعدة البيانات فارغة حالياً على الويب، يرجى التوجه أولاً لقسم '📥 استيراد ورفع ملفات Excel' لرفع بيان منشآتك وتنشيط الواجهة تلقائياً.")
         else:
             st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
             facility_list = df_assets['المنشأة'].dropna().unique().tolist()
@@ -298,7 +310,7 @@ else:
                 with open("generated_letter.docx", "rb") as f:
                     st.download_button("📥 تنزيل الخطاب الآن كملف Word رسمي مجهز بالكامل للطباعة", f, file_name=f"خطاب_صحة_الطائف_{sok_num}.docx")
                 st.markdown("</div>", unsafe_allow_html=True)
-    # ⚙️ لوحة التحكم بالأصول (تعديل وحذف كامل يدوي وتفاعلي)
+    # ⚙️ لوحة التحكم بالأصول
     elif menu == "⚙️ التحكم بالأصول (تعديل/حذف)":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-gear'></i> إدارة وتعديل وحذف الأصول العقارية</h1>", unsafe_allow_html=True)
         if st.session_state['role'] != "Admin":
@@ -346,7 +358,7 @@ else:
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # 💼 تتبع وحفظ المعاملات الرقمية بين الإدارات والجهات
+    # 💼 تتبع وحفظ المعاملات الرقمية
     elif menu == "💼 تتبع وحفظ المعاملات الرقمية":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-route'></i> حفظ وتتبع خط سير المعاملات الرقمية للأراضي</h1>", unsafe_allow_html=True)
         st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
@@ -375,7 +387,7 @@ else:
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # ⚠️ نظام رقابة الأراضي وتتبع التعديات الميدانية
+    # ⚠️ نظام رقابة الأراضي وتتبع التعديات
     elif menu == "⚠️ رقابة الأراضي وتتبع التعديات":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-shield-halved'></i> تتبع التعديات والرقابة الميدانية للأراضي</h1>", unsafe_allow_html=True)
         st.markdown("<div class='card-luxury'>", unsafe_allow_html=True)
