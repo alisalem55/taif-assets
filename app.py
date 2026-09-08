@@ -65,7 +65,7 @@ st.markdown("""
         font-weight: bold !important;
     }
     
-    /* تعديل جذري لتصميم القائمة الجانبية للتخلص من الدوائر والتداخل والخطوط الباهتة */
+    /* تعديل جذري لتصميم القائمة الجانبية لتخلص من الدوائر القديمة */
     div[data-testid="stSidebarUserContent"] {
         background: #113829 !important;
         color: #ffffff !important;
@@ -99,50 +99,26 @@ st.markdown("""
         border-color: #dfb76c !important;
         transform: translateX(-3px);
     }
-    /* إلغاء الدائرة الافتراضية وحجبها بالكامل */
     div[data-testid="stSidebarUserContent"] .stRadio div[role="radiogroup"] [data-testid="stMarkdownContainer"]::before {
         display: none !important;
     }
     div[data-testid="stSidebarUserContent"] .stRadio div[role="radiogroup"] input[type="radio"] {
         display: none !important;
     }
-    
-    /* تحسين أزرار النظام بالكامل */
-    .stButton>button {
-        background-color: #1d5c43 !important;
-        color: white !important;
-        border-radius: 8px !important;
-        padding: 10px 20px !important;
-        font-size: 14px !important;
-        font-weight: 700 !important;
-        border: none !important;
-        width: 100% !important;
-        box-shadow: 0 2px 4px rgba(29, 92, 67, 0.1) !important;
-        transition: all 0.2s ease !important;
-    }
-    .stButton>button:hover {
-        background-color: #dfb76c !important;
-        color: #1d5c43 !important;
-        transform: translateY(-1px);
-    }
     </style>
 """, unsafe_allow_html=True)
 
-# تفعيل نظام الذاكرة السحابية المستمرة لضمان عدم ضياع قوائم الإكسل المرفوعة على الويب أبداً
-if "db_assets" not in st.session_state:
-    if os.path.exists("assets_db.csv"):
-        st.session_state["db_assets"] = pd.read_csv("assets_db.csv")
-    else:
-        st.session_state["db_assets"] = pd.DataFrame()
+# تهيئة وتأمين قاعدة البيانات المحلية الدائمة على خادم الويب لضمان الثبات المطلق
+def init_db():
+    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقار", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
+    if not os.path.exists("assets_db.csv") or os.stat("assets_db.csv").st_size == 0:
+        pd.DataFrame(columns=required_cols).to_csv("assets_db.csv", index=False)
+    if not os.path.exists("encroachments_db.csv"):
+        pd.DataFrame(columns=["رقم الصك", "المنشأة", "نوع_التعدي", "حالة_القضية", "تاريخ_الرصد", "الإجراء_المتخذ"]).to_csv("encroachments_db.csv", index=False)
+    if not os.path.exists("workflows_db.csv"):
+        pd.DataFrame(columns=["رقم_المعاملة", "موضوع_المعاملة", "الإدارة_الحالية", "حالة_المعاملة", "تاريخ_التحديث", "الموظف_المسؤول"]).to_csv("workflows_db.csv", index=False)
 
-if "db_encroach" not in st.session_state:
-    st.session_state["db_encroach"] = pd.DataFrame()
-
-if "db_workflows" not in st.session_state:
-    st.session_state["db_workflows"] = pd.DataFrame()
-
-def log_action(user, action, details):
-    pass
+init_db()
 
 # بوابة الأمان والتحقق الرقمي للولوج للمنصة
 if 'logged_in' not in st.session_state:
@@ -195,14 +171,14 @@ else:
     st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
     if st.sidebar.button("🚪 خروج آمن من النظام"):
         st.session_state['logged_in'] = False
-        st.clear_not_saved_mutations()
         st.rerun()
 
-    df_assets = st.session_state["db_assets"]
-    df_encroach = st.session_state["db_encroach"]
-    df_workflows = st.session_state["db_workflows"]
+    # القراءة المباشرة من ملف السيرفر لضمان ثبات البيانات المرفوعة وعدم اختفائها أبداً
+    df_assets = pd.read_csv("assets_db.csv")
+    df_encroach = pd.read_csv("encroachments_db.csv")
+    df_workflows = pd.read_csv("workflows_db.csv")
 
-    # 📊 لوحة التحكم اليومية لـ 144 منشأة مع تفعيل محرك جمع المساحات الفوري
+    # 📊 لوحة التحكم اليومية لـ 144 منشأة
     if menu == "📊 لوحة التحكم اليومية":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-table-cells-large'></i> لوحة الأداء والتوزيع الشبكي الموحد لممتلكات الصحة</h1>", unsafe_allow_html=True)
         
@@ -210,7 +186,6 @@ else:
         with k1:
             st.markdown(f"<div class='mini-kpi'><b><i class='fa-solid fa-hospital'></i> إجمالي ممتلكات الصحة:</b> <br><span style='font-size: 1.15rem; font-weight: bold; color: #1d5c43;'>{len(df_assets) if not df_assets.empty else 0} منشأة وموقع</span></div>", unsafe_allow_html=True)
         with k2:
-            # دالة تنظيف ومعالجة رقمية ذكية لجمع عمود المساحة النصية بدقة متناهية من ملفك الموثق
             if not df_assets.empty and "المساحة" in df_assets.columns:
                 df_assets['clean_area'] = df_assets["المساحة"].astype(str).str.replace(',', '', regex=True).str.replace(' ', '', regex=True).str.strip()
                 df_assets['clean_area'] = pd.to_numeric(df_assets['clean_area'], errors='coerce').fillna(0)
@@ -254,7 +229,7 @@ else:
                 st.markdown("<div class='alert-premium' style='background:#f4f7f6; color:#555; border-right:6px solid #1d5c43;'><i class='fa-solid fa-circle-check' style='color:#2ecc71;'></i> المنصة الرقمية جاهزة ومحمية ومستعدة بالكامل لتلقي وحصر ممتلكات صحة الطائف.</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # 📥 قسم استيراد ورفع ملفات Excel والتثبيت السحابي الدائم
+    # 📥 قسم استيراد ورفع ملفات Excel والتثبيت القاطع على خادم الويب
     elif menu == "📥 استيراد ورفع ملفات Excel":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-file-excel'></i> استيراد ورفع القوائم من ملفات Excel</h1>", unsafe_allow_html=True)
         if st.session_state['role'] != "Admin":
@@ -268,10 +243,11 @@ else:
                     df_uploaded = pd.read_excel(uploaded_file) if not uploaded_file.name.endswith('.csv') else pd.read_csv(uploaded_file)
                     st.success(f"✅ تم قراءة ملفك بنجاح! تم رصد وعزل {len(df_uploaded)} منشأة عقارية وطبية.")
                     st.dataframe(df_uploaded.head(10), use_container_width=True)
-                    if st.button("🚀 دمج وحفظ وتثبيت الـ 144 منشأة بشكل قاطع على الويب"):
-                        st.session_state["db_assets"] = df_uploaded
+                    if st.button("🚀 دمج وحفظ وتثبيت الـ 144 منشأة بشكل دائم وقاطع على الويب"):
+                        # كتابة وحفظ الملف مباشرة داخل سيرفر جيت هوب لمنع اختفائه تماماً
+                        df_uploaded.to_csv("assets_db.csv", index=False)
                         st.balloons()
-                        st.success("🎉 تهانينا! تم تثبيت ملف الممتلكات الحقيقي بنجاح على سيرفر الويب وتنشيط الخطابات وبطاقات الوثائق بالكامل!")
+                        st.success("🎉 تهانينا! تم تثبيت ملف الممتلكات الحقيقي بنجاح على خادم الويب وتنشيط الخطابات وبطاقات الوثائق بالكامل!")
                         st.rerun()
                 except Exception as e:
                     st.error(f"حدث خطأ أثناء قراءة هيكلية ملف الـ Excel: {e}")
@@ -280,11 +256,12 @@ else:
     elif menu == "🔍 ملفات الأملاك والخطابات وبطاقات الوثائق المصورة":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-open'></i> ملفات الأصول وبطاقات الوثائق المصورة والخطابات</h1>", unsafe_allow_html=True)
         
-        if df_assets.empty or 'المنشأة' not in df_assets.columns:
-            st.markdown("<div class='alert-premium' style='background:#fff9e6; border-right:6px solid #f39c12; color:#d35400;'><i class='fa-solid fa-circle-exclamation'></i> أولاً لرفع قوائم الـ 144 منشأة وصك لتفعيل بطاقات الوثائق وصانع الخطابات تلقائياً، يرجى التوجه لقسم '📥 استيراد ورفع ملفات Excel' والضغط على زر التثبيت قاطع السحابي.</div>", unsafe_allow_html=True)
+        # حماية برمجية معززة تفحص حجم جدول البيانات الفعلي لضمان التثبيت
+        if df_assets.empty or len(df_assets) < 2 or 'المنشأة' not in df_assets.columns:
+            st.markdown("<div class='alert-premium' style='background:#fff9e6; border-right:6px solid #f39c12; color:#d35400;'><i class='fa-solid fa-circle-exclamation'></i> قاعدة البيانات فارغة حالياً على الويب، يرجى التوجه أولاً لقسم '📥 استيراد ورفع ملفات Excel' ورفع ملف البيانات والضغط على زر التثبيت الدائم لتفعيل بطاقات الوثائق وصانع الخطابات تلقائياً.</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='grid-header'><span><i class='fa-solid fa-hospital-user'></i> اختر المنشأة أو الأرض من القائمة المستدعاة من ملفك الموثق</span></div>", unsafe_allow_html=True)
+            st.markdown("<div class='grid-header'><span><i class='fa-solid fa-hospital-user'></i> اختر المنشأة أو الأرض من القائمة المستدعاة من ملفك الموثق العقاري</span></div>", unsafe_allow_html=True)
             
             facility_list = df_assets['المنشأة'].dropna().unique().tolist()
             selected_facility = st.selectbox("🏥 اضغط هنا لاختيار الموقع الطبي / الأرض الفضاء المستهدفة من القائمة المنسدلة:", facility_list, key="facility_dropdown_clean")
@@ -350,7 +327,7 @@ else:
                 text_content = ""
                 sok_num = asset_data['رقم الصك'] if ('رقم الصك' in asset_data and pd.notnull(asset_data['رقم الصك'])) else "لا يوجد"
                 sok_date = asset_data['تاريخ الصك'] if ('تاريخ الصك' in asset_data and pd.notnull(asset_data['تاريخ الصك'])) else "لا يوجد"
-                facility_area = asset_data['المساحة'] if ('المساحة' in asset_data and pd.notnull(asset_data['المساحة'])) else "غير محدد"
+                facility_area = asset_data['المساحة'] if ('المساحة' in asset_data and pd.notnull(asset_data['المساحة'])) else "غير مححدد"
                 facility_village = asset_data['مركز/حي/قرية'] if ('مركز/حي/قرية' in asset_data and pd.notnull(asset_data['مركز/حي/قرية'])) else "محافظة الطائف"
                 
                 if "أمين" in letter_target:
@@ -396,7 +373,6 @@ else:
                 bypass_dup = st.checkbox("السماح برفع وتمرير رقم الصك وتكراره استثنائياً (موافقة الإدارة العليا)")
                 
                 if st.form_submit_button("💾 اعتماد وحفظ الأصل في قاعدة البيانات الحالية"):
-                    # حماية برمجية معززة لمنع الـ KeyError التلقائي وفحص التكرار بشكل سليم وآمن
                     has_dup = False
                     if not df_assets.empty and 'رقم الصك' in df_assets.columns:
                         if r_sok in df_assets['رقم الصك'].astype(str).values:
@@ -406,8 +382,9 @@ else:
                         st.error("❌ تنبيه أمني عاجل: رقم الصك هذا مسجل مسبقاً في النظام! لا يمكن التكرار إلا بموافقة الإدارة العليا.")
                     else:
                         new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat}])
-                        st.session_state["db_assets"] = pd.concat([df_assets, new_asset]).reset_index(drop=True)
-                        st.success("✅ تم حفظ وتأمين الأصل الجديد بنجاح!")
+                        updated_df = pd.concat([df_assets, new_asset]).reset_index(drop=True)
+                        updated_df.to_csv("assets_db.csv", index=False)
+                        st.success("✅ تم حفظ وتأمين الأصل الجديد بنجاح في قاعدة بيانات خادم الويب الدائمة!")
                         st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -415,8 +392,8 @@ else:
             if not df_assets.empty:
                 edited_df = st.data_editor(df_assets, num_rows="dynamic", use_container_width=True, key="assets_editor_v138")
                 if st.button("💾 حفظ كافة التغييرات والتعديلات النشطة للأصول"):
-                    st.session_state["db_assets"] = edited_df
-                    st.success("🎉 تم تحديث وحفظ جدول البيانات والـ 144 موقع بنجاح على السحابة!")
+                    edited_df.to_csv("assets_db.csv", index=False)
+                    st.success("🎉 تم تحديث وحفظ جدول البيانات والـ 144 موقع بنجاح على خادم الويب!")
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -433,9 +410,10 @@ else:
                 w_dept = st.selectbox("الجهة أو الإدارة الحكومية الحالية عندها المعاملة:", ["أمانة محافظة الطائف", "المحكمة العامة بالطائف", "كتابة العدل بمحافظة الطائف", "إدارة الأراضي والممتلكات بالفرع"], key="dept_workflow_drop")
                 w_status = st.selectbox("حالة المعاملة الميدانية الحالية:", ["قيد الدراسة والتدقيق المساحي بالذرعة", "تم الإفراغ والمطابقة بنجاح", "معاملة منتهية تم أرشفتها"], key="status_workflow_drop")
             if st.form_submit_button("💾 قيد وحفظ خط سير المعاملة بأرشيف المنصة"):
-                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "الإدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
-                st.session_state["db_workflows"] = pd.concat([df_workflows, new_wf]).reset_index(drop=True)
-                st.success("✅ تم حفظ وتأمين المعاملة في الأرشيف الرقمي!")
+                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "إدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
+                updated_wf = pd.concat([df_workflows, new_wf]).reset_index(drop=True)
+                updated_wf.to_csv("workflows_db.csv", index=False)
+                st.success("✅ تم حفظ وتأمين المعاملة في الأرشيف الرقمي لفرع الوزارة!")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -443,8 +421,8 @@ else:
         if not df_workflows.empty:
             edited_wf_df = st.data_editor(df_workflows, num_rows="dynamic", use_container_width=True, key="workflow_editor_active")
             if st.button("💾 حفظ كافة تعديلات وحذوفات جدول تتبع المعاملات"):
-                st.session_state["db_workflows"] = edited_wf_df
-                st.success("🎉 تم حفظ وتثبيت خط سير معاملاتك بنجاح!")
+                edited_wf_df.to_csv("workflows_db.csv", index=False)
+                st.success("🎉 تم حفظ وتثبيت خط سير معاملاتك بنجاح على خادم الويب!")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -463,7 +441,8 @@ else:
             e_action = st.text_area("الإجراء المتخذ هندسياً وقانونياً")
             if st.form_submit_button("🚨 تسجيل حالة التعدي وأرشفة المعاملة رسمياً"):
                 new_enc = pd.DataFrame([{"رقم الصك": e_sok, "المنشأة": e_name, "نوع_التعدي": e_type, "حالة_القضية": e_status, "تاريخ_الرصد": datetime.now().strftime("%Y-%m-%d"), "الإجراء_المتخذ": e_action}])
-                st.session_state["db_encroach"] = pd.concat([df_encroach, new_enc]).reset_index(drop=True)
+                updated_enc = pd.concat([df_encroach, new_enc]).reset_index(drop=True)
+                updated_enc.to_csv("encroachments_db.csv", index=False)
                 st.success("✅ تم تسجيل حالة التعدي بنجاح في السجلات.")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -472,7 +451,7 @@ else:
         if not df_encroach.empty:
             edited_encroach = st.data_editor(df_encroach, num_rows="dynamic", use_container_width=True, key="encroach_editor_vfinal")
             if st.button("💾 حفظ كافة التعديلات والتغييرات النشطة في سجل التعديات"):
-                st.session_state["db_encroach"] = edited_encroach
-                st.success("🎉 تم حفظ وتثبيت كافة تحديثات الرقابة والتعديات الميدانية بنجاح!")
+                edited_encroach.to_csv("encroachments_db.csv", index=False)
+                st.success("🎉 تم حفظ وتثبيت كافة تحديثات الرقابة والتعديات الميدانية بنجاح على خادم الويب!")
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
