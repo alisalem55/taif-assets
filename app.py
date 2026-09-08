@@ -202,7 +202,7 @@ else:
     df_encroach = st.session_state["db_encroach"]
     df_workflows = st.session_state["db_workflows"]
 
-    # 📊 لوحة التحكم اليومية لـ 144 منشأة الحقيقية
+    # 📊 لوحة التحكم اليومية لـ 144 منشأة مع تفعيل محرك جمع المساحات الفوري
     if menu == "📊 لوحة التحكم اليومية":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-table-cells-large'></i> لوحة الأداء والتوزيع الشبكي الموحد لممتلكات الصحة</h1>", unsafe_allow_html=True)
         
@@ -210,6 +210,7 @@ else:
         with k1:
             st.markdown(f"<div class='mini-kpi'><b><i class='fa-solid fa-hospital'></i> إجمالي ممتلكات الصحة:</b> <br><span style='font-size: 1.15rem; font-weight: bold; color: #1d5c43;'>{len(df_assets) if not df_assets.empty else 0} منشأة وموقع</span></div>", unsafe_allow_html=True)
         with k2:
+            # دالة تنظيف ومعالجة رقمية ذكية لجمع عمود المساحة النصية بدقة متناهية من ملفك الموثق
             if not df_assets.empty and "المساحة" in df_assets.columns:
                 df_assets['clean_area'] = df_assets["المساحة"].astype(str).str.replace(',', '', regex=True).str.replace(' ', '', regex=True).str.strip()
                 df_assets['clean_area'] = pd.to_numeric(df_assets['clean_area'], errors='coerce').fillna(0)
@@ -268,7 +269,6 @@ else:
                     st.success(f"✅ تم قراءة ملفك بنجاح! تم رصد وعزل {len(df_uploaded)} منشأة عقارية وطبية.")
                     st.dataframe(df_uploaded.head(10), use_container_width=True)
                     if st.button("🚀 دمج وحفظ وتثبيت الـ 144 منشأة بشكل قاطع على الويب"):
-                        # حفظ البيانات في الـ session_state لمنع اختفائها عند الانتقال بين الصفحات
                         st.session_state["db_assets"] = df_uploaded
                         st.balloons()
                         st.success("🎉 تهانينا! تم تثبيت ملف الممتلكات الحقيقي بنجاح على سيرفر الويب وتنشيط الخطابات وبطاقات الوثائق بالكامل!")
@@ -300,7 +300,7 @@ else:
                 with row1_col1:
                     st.markdown("<div class='grid-box' style='border-top: 4px solid #dfb76c;'>", unsafe_allow_html=True)
                     st.markdown("<div class='grid-header'><span><i class='fa-solid fa-scroll'></i> 1. صـورة الصك الشرعي الموثق للعقار</span></div>", unsafe_allow_html=True)
-                    sok_img = st.file_uploader(f"رفع/تحديث صورة الصك لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"sok_up_{asset_data['رقم الصك']}")
+                    sok_img = st.file_uploader(f"رفع/تحديث صورة الصك لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"sok_up_{asset_data['رقم الصك'] if 'رقم الصك' in asset_data else 'none'}")
                     if sok_img is not None:
                         st.image(sok_img, caption="معاينة صورة الصك الشرعي المعتمد برمجياً", use_container_width=True)
                     else:
@@ -310,7 +310,7 @@ else:
                 with row1_col2:
                     st.markdown("<div class='grid-box' style='border-top: 4px solid #1d5c43;'>", unsafe_allow_html=True)
                     st.markdown("<div class='grid-header'><span><i class='fa-solid fa-trowel-bricks'></i> 2. صـورة رخصة البناء الهندسية المعمارية</span></div>", unsafe_allow_html=True)
-                    permit_img = st.file_uploader(f"رفع/تحديث صورة الرخصة لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"permit_up_{asset_data['رقم الصك']}")
+                    permit_img = st.file_uploader(f"رفع/تحديث صورة الرخصة لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"permit_up_{asset_data['رقم الصك'] if 'رقم الصك' in asset_data else 'none'}")
                     if permit_img is not None:
                         st.image(permit_img, caption="معاينة رخصة البناء الهندسية الصادرة", use_container_width=True)
                     else:
@@ -320,18 +320,18 @@ else:
                 with row2_col1:
                     st.markdown("<div class='grid-box' style='border-top: 4px solid #58a6ff;'>", unsafe_allow_html=True)
                     st.markdown("<div class='grid-header'><span><i class='fa-solid fa-map-location-dot'></i> 3. صورة الرفع المساحي والموقع الميداني (الأقمار الصناعية)</span></div>", unsafe_allow_html=True)
-                    site_img = st.file_uploader(f"رفع/تحديث المخطط الجغرافي لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"site_up_{asset_data['رقم الصك']}")
+                    site_img = st.file_uploader(f"رفع/تحديث المخطط الجغرافي لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"site_up_{asset_data['رقم الصك'] if 'رقم الصك' in asset_data else 'none'}")
                     if site_img is not None:
                         st.image(site_img, caption="معاينة صورة كروكي الموقع والرفع المساحي الفعلي", use_container_width=True)
                     else:
-                        maps_url = f"https://google.com{str(asset_data['دائرة العرض']).replace('°','')},{str(asset_data['خط الطول']).replace('°','')}"
+                        maps_url = f"https://google.com{str(asset_data['دائرة العرض']).replace('°','') if 'دائرة العرض' in asset_data else '21.26'},{str(asset_data['خط الطول']).replace('°','') if 'خط الطول' in asset_data else '40.41'}"
                         st.markdown(f"<a href='{maps_url}' target='_blank'><button style='width:100%; padding:10px; background:#1d5c43; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;'><i class='fa-solid fa-location-arrow'></i> استعراض الموقع جغرافياً على Google Maps</button></a>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
                     
                 with row2_col2:
                     st.markdown("<div class='grid-box' style='border-top: 4px solid #143f2e;'>", unsafe_allow_html=True)
                     st.markdown("<div class='grid-header'><span><i class='fa-solid fa-receipt'></i> 4. صورة قـرار الذرعة والقرار المساحي المعتمد</span></div>", unsafe_allow_html=True)
-                    zar_img = st.file_uploader(f"رفع/تحديث صورة قرار الذرعة لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"zar_up_{asset_data['رقم الصك']}")
+                    zar_img = st.file_uploader(f"رفع/تحديث صورة قرار الذرعة لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"zar_up_{asset_data['رقم الصك'] if 'رقم الصك' in asset_data else 'none'}")
                     if zar_img is not None:
                         st.image(zar_img, caption="معاينة قرار الذرعة المعتمد والمطابق المساحي من الأمانة", use_container_width=True)
                     else:
@@ -348,13 +348,13 @@ else:
                 ], key="letter_target_dropdown")
                 
                 text_content = ""
-                sok_num = asset_data['رقم الصك'] if pd.notnull(asset_data['رقم الصك']) else "لا يوجد"
-                sok_date = asset_data['تاريخ الصك'] if pd.notnull(asset_data['تاريخ الصك']) else "لا يوجد"
-                facility_area = asset_data['المساحة'] if pd.notnull(asset_data['المساحة']) else "غير محدد"
-                facility_village = asset_data['مركز/حي/قرية'] if pd.notnull(asset_data['مركز/حي/قرية']) else "محافظة الطائف"
+                sok_num = asset_data['رقم الصك'] if ('رقم الصك' in asset_data and pd.notnull(asset_data['رقم الصك'])) else "لا يوجد"
+                sok_date = asset_data['تاريخ الصك'] if ('تاريخ الصك' in asset_data and pd.notnull(asset_data['تاريخ الصك'])) else "لا يوجد"
+                facility_area = asset_data['المساحة'] if ('المساحة' in asset_data and pd.notnull(asset_data['المساحة'])) else "غير محدد"
+                facility_village = asset_data['مركز/حي/قرية'] if ('مركز/حي/قرية' in asset_data and pd.notnull(asset_data['مركز/حي/قرية'])) else "محافظة الطائف"
                 
                 if "أمين" in letter_target:
-                    text_content = f"سعادة أمين محافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتفيدكم فرع وزارة الصحة بمحافظة الطائف علماً بملكية الوزارة الرسمية للموقع المخصص لـ ({selected_facility}) والواقع بنطاق ({facility_village}) بموجب الصك الشرعي رقم ({sok_num}) وتاريخ ({sok_date}) بمساحة قدرها ({facility_area} م²). نأمل التوجيه لمن يلزم لاعتماد الرفع المساحي وقرار الذرعة واستخراج رخصة بناء وفق الإحداثيات المرفقة ({asset_data['دائرة العرض']} , {asset_data['خط الطول']}).\n\nوتقبلوا خالص التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
+                    text_content = f"سعادة أمين محافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتفيدكم فرع وزارة الصحة بمحافظة الطائف علماً بملكية الوزارة الرسمية للموقع المخصص لـ ({selected_facility}) والواقع بنطاق ({facility_village}) بموجب الصك الشرعي رقم ({sok_num}) وتاريخ ({sok_date}) بمساحة قدرها ({facility_area} م²). نأمل التوجيه لمن يلزم لاعتماد الرفع المساحي وقرار الذرعة واستخراج رخصة بناء وفق الإحداثيات المرفقة ({asset_data['دائرة العرض'] if 'دائرة العرض' in asset_data else '21.26'} , {asset_data['خط الطول'] if 'خط الطول' in asset_data else '40.41'}).\n\nوتقبلوا خالص التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
                 elif "الكهرباء" in letter_target:
                     text_content = f"سعادة مدير شركة الكهرباء بمحافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nنظراً لجهوزية البدء الإنشائي والتشغيلي للموقع الطبي التابع للوزارة ({selected_facility}) والمقام على الأرض ذات الصك رقم ({sok_num})، نأمل منكم الإيعاز للمختصين لطلب إيصال التيار الكهربائي وتحديد موقع محول الطاقة الفرعي.\n\nوتقبلوا وافر التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
                 else:
@@ -396,7 +396,13 @@ else:
                 bypass_dup = st.checkbox("السماح برفع وتمرير رقم الصك وتكراره استثنائياً (موافقة الإدارة العليا)")
                 
                 if st.form_submit_button("💾 اعتماد وحفظ الأصل في قاعدة البيانات الحالية"):
-                    if not df_assets.empty and r_sok in df_assets['رقم الصك'].astype(str).values and not bypass_dup:
+                    # حماية برمجية معززة لمنع الـ KeyError التلقائي وفحص التكرار بشكل سليم وآمن
+                    has_dup = False
+                    if not df_assets.empty and 'رقم الصك' in df_assets.columns:
+                        if r_sok in df_assets['رقم الصك'].astype(str).values:
+                            has_dup = True
+                            
+                    if has_dup and not bypass_dup:
                         st.error("❌ تنبيه أمني عاجل: رقم الصك هذا مسجل مسبقاً في النظام! لا يمكن التكرار إلا بموافقة الإدارة العليا.")
                     else:
                         new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat}])
