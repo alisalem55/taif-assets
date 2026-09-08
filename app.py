@@ -215,7 +215,7 @@ else:
     df_encroach = pd.read_csv("encroachments_db.csv")
     df_workflows = pd.read_csv("workflows_db.csv")
 
-    # 📊 لوحة التحكم اليومية لـ 138 منشأة
+    # 📊 لوحة التحكم اليومية لـ 144 منشأة مع تفعيل محرك جمع المساحات الفوري
     if menu == "📊 لوحة التحكم اليومية":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-table-cells-large'></i> لوحة الأداء والتوزيع الشبكي الموحد لممتلكات الصحة</h1>", unsafe_allow_html=True)
         
@@ -223,8 +223,10 @@ else:
         with k1:
             st.markdown(f"<div class='mini-kpi'><b><i class='fa-solid fa-hospital'></i> إجمالي ممتلكات الصحة:</b> <br><span style='font-size: 1.15rem; font-weight: bold; color: #1d5c43;'>{len(df_assets) if not df_assets.empty else 0} منشأة وموقع</span></div>", unsafe_allow_html=True)
         with k2:
+            # دالة تنظيف ومعالجة رقمية ذكية لجمع عمود المساحة النصية بدقة متناهية من ملفك الموثق
             if not df_assets.empty and "المساحة" in df_assets.columns:
-                df_assets['clean_area'] = pd.to_numeric(df_assets["المساحة"].astype(str).str.replace(',', '').str.strip(), errors='coerce')
+                df_assets['clean_area'] = df_assets["المساحة"].astype(str).str.replace(',', '', regex=True).str.replace(' ', '', regex=True).str.strip()
+                df_assets['clean_area'] = pd.to_numeric(df_assets['clean_area'], errors='coerce').fillna(0)
                 total_area = df_assets['clean_area'].sum()
             else:
                 total_area = 0
@@ -243,8 +245,8 @@ else:
                 try:
                     map_data = df_assets[["دائرة العرض", "خط الطول"]].dropna()
                     map_data.columns = ["lat", "lon"]
-                    map_data["lat"] = pd.to_numeric(map_data["lat"], errors='coerce')
-                    map_data["lon"] = pd.to_numeric(map_data["lon"], errors='coerce')
+                    map_data["lat"] = pd.to_numeric(map_data["lat"].astype(str).str.replace('°', '', regex=True).str.strip(), errors='coerce')
+                    map_data["lon"] = pd.to_numeric(map_data["lon"].astype(str).str.replace('°', '', regex=True).str.strip(), errors='coerce')
                     map_data = map_data.dropna()
                     if not map_data.empty:
                         st.map(map_data, use_container_width=True)
@@ -279,7 +281,7 @@ else:
                     df_uploaded = pd.read_excel(uploaded_file) if not uploaded_file.name.endswith('.csv') else pd.read_csv(uploaded_file)
                     st.success(f"✅ تم قراءة ملفك بنجاح! تم رصد وعزل {len(df_uploaded)} منشأة عقارية وطبية.")
                     st.dataframe(df_uploaded.head(10), use_container_width=True)
-                    if st.button("🚀 دمج وحفظ الـ 138 منشأة بالكامل وتخزينها دائمًا على جهازك"):
+                    if st.button("🚀 دمج وحفظ الـ 144 منشأة بالكامل وتخزينها دائمًا على جهازك"):
                         df_uploaded.to_csv("assets_db.csv", index=False)
                         log_action(st.session_state['username'], "استيراد ملف الأصول", f"تم استيراد بيان الممتلكات لـ {len(df_uploaded)} منشأة")
                         st.balloons()
@@ -292,9 +294,8 @@ else:
     elif menu == "🔍 ملفات الأملاك والخطابات وبطاقات الوثائق المصورة":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-open'></i> ملفات الأصول وبطاقات الوثائق المصورة والخطابات</h1>", unsafe_allow_html=True)
         
-        # حماية برمجية كاملة لمنع تعطل السيرفر والـ KeyError إذا كانت قاعدة البيانات فارغة في أول تشغيل للموقع
         if df_assets.empty or 'المنشأة' not in df_assets.columns:
-            st.info("💡 قاعدة البيانات فارغة حالياً، يرجى التوجه لقسم '📥 استيراد ورفع ملفات Excel' أولاً لرفع قوائم الـ 138 منشأة وصك لتفعيل بطاقات الوثائق المصورة.")
+            st.info("💡 قاعدة البيانات فارغة حالياً، يرجى التوجه لقسم '📥 استيراد ورفع ملفات Excel' أولاً لرفع قوائم الـ 144 منشأة وصك لتفعيل بطاقات الوثائق المصورة.")
         else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
             st.markdown("<div class='grid-header'><span><i class='fa-solid fa-hospital-user'></i> اختر المنشأة أو الأرض من القائمة المستدعاة من ملفك</span></div>", unsafe_allow_html=True)
@@ -337,7 +338,7 @@ else:
                     if site_img is not None:
                         st.image(site_img, caption="معاينة صورة كروكي الموقع والرفع المساحي الفعلي", use_container_width=True)
                     else:
-                        maps_url = f"https://google.com{asset_data['دائرة العرض']},{asset_data['خط الطول']}"
+                        maps_url = f"https://google.com{str(asset_data['دائرة العرض']).replace('°','')},{str(asset_data['خط الطول']).replace('°','')}"
                         st.markdown(f"<a href='{maps_url}' target='_blank'><button style='width:100%; padding:10px; background:#1d5c43; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:bold;'><i class='fa-solid fa-location-arrow'></i> استعراض الموقع جغرافياً على Google Maps</button></a>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
                     
@@ -366,12 +367,13 @@ else:
                 facility_area = asset_data['المساحة'] if pd.notnull(asset_data['المساحة']) else "غير محدد"
                 facility_village = asset_data['مركز/حي/قرية'] if pd.notnull(asset_data['مركز/حي/قرية']) else "محافظة الطائف"
                 
+                # تلبية طلبك بتعديل المسميات الرسمية بدقة أسفل الخطابات وتعديل اسم الإدارة لتظهر معتمدة ورسمية
                 if "أمين" in letter_target:
-                    text_content = f"سعادة أمين محافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتفيدكم فرع وزارة الصحة بمحافظة الطائف علماً بملكية الوزارة الرسمية للموقع المخصص لـ ({selected_facility}) والواقع بنطاق ({facility_village}) بموجب الصك الشرعي رقم ({sok_num}) وتاريخ ({sok_date}) بمساحة قدرها ({facility_area} م²). نأمل التوجيه لمن يلزم لاعتماد الرفع المساحي وقرار الذرعة واستخراج رخصة بناء وفق الإحداثيات المرفقة ({asset_data['دائرة العرض']} , {asset_data['خط الطول']}).\n\nوتقبلوا خالص التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف"
+                    text_content = f"سعادة أمين محافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتفيدكم فرع وزارة الصحة بمحافظة الطائف علماً بملكية الوزارة الرسمية للموقع المخصص لـ ({selected_facility}) والواقع بنطاق ({facility_village}) بموجب الصك الشرعي رقم ({sok_num}) وتاريخ ({sok_date}) بمساحة قدرها ({facility_area} م²). نأمل التوجيه لمن يلزم لاعتماد الرفع المساحي وقرار الذرعة واستخراج رخصة بناء وفق الإحداثيات المرفقة ({asset_data['دائرة العرض']} , {asset_data['خط الطول']}).\n\nوتقبلوا خالص التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
                 elif "الكهرباء" in letter_target:
-                    text_content = f"سعادة مدير شركة الكهرباء بمحافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nنظراً لجهوزية البدء الإنشائي والتشغيلي للموقع الطبي التابع للوزارة ({selected_facility}) والمقام على الأرض ذات الصك رقم ({sok_num})، نأمل منكم الإيعاز للمختصين لطلب إيصال التيار الكهربائي وتحديد موقع محول الطاقة الفرعي.\n\nوتقبلوا وافر التحية والتقدير،،\n\nمساعد مدير فرع الوزارة للشؤون الهندسية والمشاريع"
+                    text_content = f"سعادة مدير شركة الكهرباء بمحافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nنظراً لجهوزية البدء الإنشائي والتشغيلي للموقع الطبي التابع للوزارة ({selected_facility}) والمقام على الأرض ذات الصك رقم ({sok_num})، نأمل منكم الإيعاز للمختصين لطلب إيصال التيار الكهربائي وتحديد موقع محول الطاقة الفرعي.\n\nوتقبلوا وافر التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
                 else:
-                    text_content = f"فضيلة رئيس المحكمة العامة بمحافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتتقدم فرع وزارة الصحة بمحافظة الطائف بطلب تحديث وإصدار صك إلكتروني موحد ومطابقة مسحية للصك رقم ({sok_num}) وتاريخ ({sok_date}) العائد لملك الوزارة في موقع ({selected_facility}) بنطاق ({facility_village}). نأمل التوجيه لمطابقة الحدود الإنشائية حسب الرفع المساحي المرفق.\n\nوتقبلوا خالص التحية والتقدير،،"
+                    text_content = f"فضيلة رئيس المحكمة العامة بمحافظة الطائف\nالسلام عليكم ورحمة الله وبركاته،،\n\nتتقدم فرع وزارة الصحة بمحافظة الطائف بطلب تحديث وإصدار صك إلكتروني موحد ومطابقة مسحية للصك رقم ({sok_num}) وتاريخ ({sok_date}) العائد لملك الوزارة في موقع ({selected_facility}) بنطاق ({facility_village}). نأمل التوجيه لمطابقة الحدود الإنشائية حسب الرفع المساحي المرفق.\n\nوتقبلوا خالص التحية والتقدير،،\n\nمدير فرع وزارة الصحة بمحافظة الطائف\nإدارة الأراضي والممتلكات"
                 
                 st.text_area("📄 صيغة الخطاب الرسمي والذكية المولد تلقائياً لفرع الوزارة:", text_content, height=200)
                 doc = Document()
@@ -405,7 +407,6 @@ else:
                 with c_c2:
                     lon = st.text_input("إحداثي خط الطول (Longitude)")
                 
-                # تفعيل ميزة الأمان وحق الفيتو لمنع تكرار نفس الصك إلا بموافقة صريحة من المدير كطلبك
                 st.markdown("<b>🔒 إعدادات التحقق من التكرار والازدواجية:</b>", unsafe_allow_html=True)
                 bypass_dup = st.checkbox("السماح برفع وتمرير رقم الصك وتكراره استثنائياً (موافقة الإدارة العليا)")
                 
@@ -413,7 +414,7 @@ else:
                     if not df_assets.empty and r_sok in df_assets['رقم الصك'].astype(str).values and not bypass_dup:
                         st.error("❌ تنبيه أمني عاجل: رقم الصك هذا مسجل مسبقاً في النظام! لا يمكن التكرار إلا إذا قمت بتفعيل علامة الصح الخاصة بـ 'موافقة الإدارة العليا' أعلاه.")
                     else:
-                        new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat, "مساحة_الرفع_الفعلي": area}])
+                        new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat}])
                         pd.concat([df_assets, new_asset]).to_csv("assets_db.csv", index=False)
                         st.success("✅ تم حفظ وتأمين الأصل الجديد بنجاح!")
                         st.rerun()
@@ -424,7 +425,7 @@ else:
                 edited_df = st.data_editor(df_assets, num_rows="dynamic", use_container_width=True, key="assets_editor_v138")
                 if st.button("💾 حفظ كافة التغييرات والتعديلات النشطة للأصول"):
                     edited_df.to_csv("assets_db.csv", index=False)
-                    st.success("🎉 تم تحديث وحفظ جدول البيانات والـ 138 موقع بنجاح على جهازك!")
+                    st.success("🎉 تم تحديث وحفظ جدول البيانات والـ 144 موقع بنجاح على جهازك!")
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
@@ -438,7 +439,7 @@ else:
                 w_id = st.text_input("رقم المعاملة (الصادر أو الوارد)")
                 w_subject = st.text_input("موضوع المعاملة الأساسي")
             with w_col2:
-                w_dept = st.selectbox("الجهة أو الإدارة الحكومية الحالية عندها المعاملة:", ["أمانة محافظة الطائف", "المحكمة العامة بالطائف", "كتابة العدل بمحافظة الطائف", "إدارة الشؤون الهندسية بالفرع"], key="dept_workflow_drop")
+                w_dept = st.selectbox("الجهة أو الإدارة الحكومية الحالية عندها المعاملة:", ["أمانة محافظة الطائف", "المحكمة العامة بالطائف", "كتابة العدل بمحافظة الطائف", "إدارة الأراضي والممتلكات بالفرع"], key="dept_workflow_drop")
                 w_status = st.selectbox("حالة المعاملة الميدانية الحالية:", ["قيد الدراسة والتدقيق المساحي بالذرعة", "تم الإفراغ والمطابقة بنجاح", "معاملة منتهية تم أرشفتها"], key="status_workflow_drop")
             if st.form_submit_button("💾 قيد وحفظ خط سير المعاملة بأرشيف المنصة"):
                 new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "الإدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
