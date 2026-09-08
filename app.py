@@ -340,7 +340,7 @@ else:
                     st.markdown("<div class='grid-header'><span><i class='fa-solid fa-trowel-bricks'></i> 2. صـورة رخصة البناء الهندسية المعمارية</span></div>", unsafe_allow_html=True)
                     permit_img = st.file_uploader(f"رفع/تحديث صورة الرخصة لـ {selected_facility}", type=["jpg", "png", "jpeg"], key=f"permit_up_{asset_data['رقم الصك']}")
                     if permit_img is not None:
-                        st.image(permit_img, caption="معاينة رخصة البناء الهندسية الصادرة"، use_container_width=True)
+                        st.image(permit_img, caption="معاينة رخصة البناء الهندسية الصادرة". use_container_width=True)
                     else:
                         st.info("📷 لم يتم رفع صورة رخصة البناء الهندسية للموقع بعد.")
                     st.markdown("</div>", unsafe_allow_html=True)
