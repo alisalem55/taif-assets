@@ -282,7 +282,7 @@ else:
         else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
             st.markdown("<div class='grid-header'><span><i class='fa-solid fa-upload'></i> مركز القراءة الآلي لبيانات ممتلكات الصحة وتوليد قاعدة بيانات الكمبيوتر</span></div>", unsafe_allow_html=True)
-            uploaded_file = st.file_uploader("اختر ملف ممتلكات وزارة الصحة الموثق بالطائف من جهازك"، type=["xlsx", "xls", "csv"])
+            uploaded_file = st.file_uploader("اختر ملف ممتلكات وزارة الصحة الموثق بالطائف من جهازك", type=["xlsx", "xls", "csv"])
             if uploaded_file is not None:
                 try:
                     df_uploaded = pd.read_excel(uploaded_file) if not uploaded_file.name.endswith('.csv') else pd.read_csv(uploaded_file)
