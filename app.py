@@ -136,7 +136,7 @@ st.markdown("""
 
 # 2. تهيئة وتأمين قاعدة البيانات المحلية لفرع الوزارة بالطائف
 def init_db():
-    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقام", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
+    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقار", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
     if not os.path.exists("assets_db.csv"):
         pd.DataFrame(columns=required_cols).to_csv("assets_db.csv", index=False)
     if not os.path.exists("audit_log.csv"):
@@ -221,11 +221,10 @@ else:
         
         k1, k2, k3, k4 = st.columns(4)
         with k1:
-            st.markdown(f"<div class='mini-kpi'><b><i class='fa-solid fa-hospital'></i> إجمالي ممتلكات الصحة:</b> <br><span style='font-size: 1.15rem; font-weight: bold; color: #1d5c43;'>{len(df_assets)} منشأة وموقع</span></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='mini-kpi'><b><i class='fa-solid fa-hospital'></i> إجمالي ممتلكات الصحة:</b> <br><span style='font-size: 1.15rem; font-weight: bold; color: #1d5c43;'>{len(df_assets) if not df_assets.empty else 0} منشأة وموقع</span></div>", unsafe_allow_html=True)
         with k2:
-            if not df_assets.empty:
-                area_col = "المساحة" if "المساحة" in df_assets.columns else ("مساحة_الصك" if "مساحة_الصك" in df_assets.columns else None)
-                df_assets['clean_area'] = pd.to_numeric(df_assets[area_col].astype(str).str.replace(',', '').str.strip(), errors='coerce') if area_col else 0
+            if not df_assets.empty and "المساحة" in df_assets.columns:
+                df_assets['clean_area'] = pd.to_numeric(df_assets["المساحة"].astype(str).str.replace(',', '').str.strip(), errors='coerce')
                 total_area = df_assets['clean_area'].sum()
             else:
                 total_area = 0
@@ -293,8 +292,9 @@ else:
     elif menu == "🔍 ملفات الأملاك والخطابات وبطاقات الوثائق المصورة":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-folder-open'></i> ملفات الأصول وبطاقات الوثائق المصورة والخطابات</h1>", unsafe_allow_html=True)
         
-        if df_assets.empty:
-            st.info("💡 قاعدة البيانات فارغة حالياً، يرجى التوجه لقسم استيراد ملفات Excel أولاً لرفع الـ 138 منشأة وصك.")
+        # حماية برمجية كاملة لمنع تعطل السيرفر والـ KeyError إذا كانت قاعدة البيانات فارغة في أول تشغيل للموقع
+        if df_assets.empty or 'المنشأة' not in df_assets.columns:
+            st.info("💡 قاعدة البيانات فارغة حالياً، يرجى التوجه لقسم '📥 استيراد ورفع ملفات Excel' أولاً لرفع قوائم الـ 138 منشأة وصك لتفعيل بطاقات الوثائق المصورة.")
         else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
             st.markdown("<div class='grid-header'><span><i class='fa-solid fa-hospital-user'></i> اختر المنشأة أو الأرض من القائمة المستدعاة من ملفك</span></div>", unsafe_allow_html=True)
@@ -404,12 +404,19 @@ else:
                     lat = st.text_input("إحداثي دائرة العرض (Latitude)")
                 with c_c2:
                     lon = st.text_input("إحداثي خط الطول (Longitude)")
-                    
+                
+                # تفعيل ميزة الأمان وحق الفيتو لمنع تكرار نفس الصك إلا بموافقة صريحة من المدير كطلبك
+                st.markdown("<b>🔒 إعدادات التحقق من التكرار والازدواجية:</b>", unsafe_allow_html=True)
+                bypass_dup = st.checkbox("السماح برفع وتمرير رقم الصك وتكراره استثنائياً (موافقة الإدارة العليا)")
+                
                 if st.form_submit_button("💾 اعتماد وحفظ الأصل في قاعدة البيانات الحالية"):
-                    new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat, "مساحة_الرفع_الفعلي": area}])
-                    pd.concat([df_assets, new_asset]).to_csv("assets_db.csv", index=False)
-                    st.success("✅ تم حفظ الأصل وتخزينه بنجاح داخل قاعدة بيانات كمبيوترك!")
-                    st.rerun()
+                    if not df_assets.empty and r_sok in df_assets['رقم الصك'].astype(str).values and not bypass_dup:
+                        st.error("❌ تنبيه أمني عاجل: رقم الصك هذا مسجل مسبقاً في النظام! لا يمكن التكرار إلا إذا قمت بتفعيل علامة الصح الخاصة بـ 'موافقة الإدارة العليا' أعلاه.")
+                    else:
+                        new_asset = pd.DataFrame([{"م": len(df_assets)+1, "المنشأة": site_name, "نوع_العقار": g_type, "حاله_العقار": "ملك", "المحافظة": "الطائف", "مركز/حي/قرية": district, "المساحة": area, "رقم الصك": r_sok, "تاريخ الصك": datetime.now().strftime("%Y-%m-%d"), "خط الطول": lon, "دائرة العرض": lat, "مساحة_الرفع_الفعلي": area}])
+                        pd.concat([df_assets, new_asset]).to_csv("assets_db.csv", index=False)
+                        st.success("✅ تم حفظ وتأمين الأصل الجديد بنجاح!")
+                        st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
@@ -434,7 +441,7 @@ else:
                 w_dept = st.selectbox("الجهة أو الإدارة الحكومية الحالية عندها المعاملة:", ["أمانة محافظة الطائف", "المحكمة العامة بالطائف", "كتابة العدل بمحافظة الطائف", "إدارة الشؤون الهندسية بالفرع"], key="dept_workflow_drop")
                 w_status = st.selectbox("حالة المعاملة الميدانية الحالية:", ["قيد الدراسة والتدقيق المساحي بالذرعة", "تم الإفراغ والمطابقة بنجاح", "معاملة منتهية تم أرشفتها"], key="status_workflow_drop")
             if st.form_submit_button("💾 قيد وحفظ خط سير المعاملة بأرشيف المنصة"):
-                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "إدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
+                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "الإدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
                 pd.concat([df_workflows, new_wf]).to_csv("workflows_db.csv", index=False)
                 st.success("✅ تم حفظ وتأمين المعاملة في الأرشيف الرقمي!")
                 st.rerun()
@@ -478,7 +485,7 @@ else:
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # 📜 سجل الحماية الرقابي والأمان (Audit Log)
+    # 📜 سجل الحماية الرقابي والأمان
     elif menu == "📜 سجل الحماية والمراقبة":
         st.markdown("<h1 style='text-align: right; color: #1d5c43;'><i class='fa-solid fa-user-shield'></i> سجل الحماية الرقابي والعمليات النشطة (Audit Log)</h1>", unsafe_allow_html=True)
         st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
