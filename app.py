@@ -136,7 +136,7 @@ st.markdown("""
 
 # 2. تهيئة وتأمين قاعدة البيانات المحلية لفرع الوزارة بالطائف
 def init_db():
-    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقار", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
+    required_cols = ["م", "المنشأة", "نوع_العقار", "حاله_العقام", "المحافظة", "مركز/حي/قرية", "المساحة", "رقم الصك", "تاريخ الصك", "خط الطول", "دائرة العرض"]
     if not os.path.exists("assets_db.csv"):
         pd.DataFrame(columns=required_cols).to_csv("assets_db.csv", index=False)
     if not os.path.exists("audit_log.csv"):
@@ -259,11 +259,11 @@ else:
             
         with block2:
             st.markdown("<div class='grid-box'><div class='grid-header'><span><i class='fa-solid fa-clock-lock'></i> التنبيهات الذكية وفحص النواقص العقارية لفرع الوزارة</span></div>", unsafe_allow_html=True)
-            if not df_assets.empty:
+            if not df_assets.empty and 'رقم الصك' in df_assets.columns:
                 no_sok_count = len(df_assets[df_assets['رقم الصك'].astype(str).str.contains('لا يوجد|NULL|بدون', na=True, case=False)])
-                st.markdown(f"<div class='alert-premium' style='background: #fffdf5; border-right: 6px solid #e67e22; color:#d35400;'><i class='fa-solid fa-triangle-exclamation'></i> نظام الفحص الآلي المطور رصد وجود {no_sok_count} منشأة وموقع صحي مدرج بحالة 'بدون صك' أو بيانات غير مكتملة.</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='alert-premium' style='background: #fffdf5; border-right: 6px solid #e67e22; color:#d35400;'><i class='fa-solid fa-triangle-exclamation'></i> نظام الفحص الآلي المطور رصد وجود {no_sok_count} منشأة وموقع صحي مدرج بحالة 'بدون صك' أو بيانات غير مكتملة تتطلب تحديث ومخاطبة أمانة الطائف بشكل عاجل.</div>", unsafe_allow_html=True)
             else:
-                st.markdown("<div class='alert-premium'><i class='fa-solid fa-circle-check' style='color:#2ecc71;'></i> النظام مستقر وقاعدة البيانات فارغة تماماً.</div>", unsafe_allow_html=True)
+                st.markdown("<div class='alert-premium' style='background:#f4f7f6; color:#555; border-right:6px solid #1d5c43;'><i class='fa-solid fa-circle-check' style='color:#2ecc71;'></i> المنصة الرقمية جاهزة ومحمية ومستعدة بالكامل لتلقي وحصر ممتلكات صحة الطائف.</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
 
     # 📥 قسم استيراد ورفع ملفات Excel
@@ -273,17 +273,18 @@ else:
             st.markdown("<div class='alert-premium'><i class='fa-solid fa-lock'></i> عذراً، خاصية رفع واستيراد الملفات تتطلب صلاحية مدير النظام (Admin).</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
-            st.markdown("<div class='grid-header'><span><i class='fa-solid fa-upload'></i> مركز القراءة الآلي لبيانات ممتلكات الصحة</span></div>", unsafe_allow_html=True)
+            st.markdown("<div class='grid-header'><span><i class='fa-solid fa-upload'></i> مركز القراءة الآلي لبيانات ممتلكات الصحة وتوليد قاعدة بيانات الكمبيوتر</span></div>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("اختر ملف ممتلكات وزارة الصحة الموثق بالطائف من جهازك", type=["xlsx", "xls", "csv"])
             if uploaded_file is not None:
                 try:
                     df_uploaded = pd.read_excel(uploaded_file) if not uploaded_file.name.endswith('.csv') else pd.read_csv(uploaded_file)
                     st.success(f"✅ تم قراءة ملفك بنجاح! تم رصد وعزل {len(df_uploaded)} منشأة عقارية وطبية.")
+                    st.dataframe(df_uploaded.head(10), use_container_width=True)
                     if st.button("🚀 دمج وحفظ الـ 138 منشأة بالكامل وتخزينها دائمًا على جهازك"):
                         df_uploaded.to_csv("assets_db.csv", index=False)
                         log_action(st.session_state['username'], "استيراد ملف الأصول", f"تم استيراد بيان الممتلكات لـ {len(df_uploaded)} منشأة")
                         st.balloons()
-                        st.success("🎉 تم حفظ وتوثيق كامل ملف الممتلكات الحقيقي بنجاح!")
+                        st.success("🎉 تهانينا! تم حفظ وتوثيق كامل ملف الممتلكات الحقيقي بنجاح على جهاز الكمبيوتر الخاص بك وتنشيط الخرائط والمراسلات!")
                         st.rerun()
                 except Exception as e:
                     st.error(f"حدث خطأ أثناء قراءة هيكلية ملف الـ Excel: {e}")
@@ -414,7 +415,7 @@ else:
             st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
             if not df_assets.empty:
                 edited_df = st.data_editor(df_assets, num_rows="dynamic", use_container_width=True, key="assets_editor_v138")
-                if st.button("💾 حفظ وتثبيت كافة التغييرات والتعديلات النشطة للأصول"):
+                if st.button("💾 حفظ كافة التغييرات والتعديلات النشطة للأصول"):
                     edited_df.to_csv("assets_db.csv", index=False)
                     st.success("🎉 تم تحديث وحفظ جدول البيانات والـ 138 موقع بنجاح على جهازك!")
                     st.rerun()
@@ -433,7 +434,7 @@ else:
                 w_dept = st.selectbox("الجهة أو الإدارة الحكومية الحالية عندها المعاملة:", ["أمانة محافظة الطائف", "المحكمة العامة بالطائف", "كتابة العدل بمحافظة الطائف", "إدارة الشؤون الهندسية بالفرع"], key="dept_workflow_drop")
                 w_status = st.selectbox("حالة المعاملة الميدانية الحالية:", ["قيد الدراسة والتدقيق المساحي بالذرعة", "تم الإفراغ والمطابقة بنجاح", "معاملة منتهية تم أرشفتها"], key="status_workflow_drop")
             if st.form_submit_button("💾 قيد وحفظ خط سير المعاملة بأرشيف المنصة"):
-                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "الإدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
+                new_wf = pd.DataFrame([{"رقم_المعاملة": w_id, "موضوع_المعاملة": w_subject, "إدارة_الحالية": w_dept, "حالة_المعاملة": w_status, "تاريخ_التحديث": datetime.now().strftime("%Y-%m-%d %H:%M"), "الموظف_المسؤول": st.session_state['username']}])
                 pd.concat([df_workflows, new_wf]).to_csv("workflows_db.csv", index=False)
                 st.success("✅ تم حفظ وتأمين المعاملة في الأرشيف الرقمي!")
                 st.rerun()
@@ -442,7 +443,7 @@ else:
         st.markdown("<div class='grid-box'>", unsafe_allow_html=True)
         if not df_workflows.empty:
             edited_wf_df = st.data_editor(df_workflows, num_rows="dynamic", use_container_width=True, key="workflow_editor_active")
-            if st.button("💾 حفظ وتثبيت كافة تعديلات وحذوفات جدول تتبع المعاملات"):
+            if st.button("💾 حفظ كافة تعديلات وحذوفات جدول تتبع المعاملات"):
                 edited_wf_df.to_csv("workflows_db.csv", index=False)
                 st.success("🎉 تم حفظ وتثبيت خط سير معاملاتك بنجاح على جهاز كمبيوترك!")
                 st.rerun()
